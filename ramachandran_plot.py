@@ -1,27 +1,31 @@
+import os
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
 from fpdf import FPDF, XPos, YPos
-import os
 
-def torsion_angle (a, b, c, d):
-
+# Función para calcular el ángulo de torsión entre cuatro átomos
+def torsion_angle(a, b, c, d):
+    # Calcula vectores entre los puntos
     u1 = np.array(b) - np.array(a)
     u2 = np.array(c) - np.array(b)
     u3 = np.array(d) - np.array(c)
 
-    e = (np.linalg.norm(u2)*u1)
+    # Calcula productos cruzados y puntos necesarios para el ángulo
+    e = (np.linalg.norm(u2) * u1)
     f = np.cross(u2, u3)
     g = np.cross(u1, u2)
 
+    # Calcula componentes del ángulo
     y = np.dot(e, f)
     x = np.dot(g, f)
 
+    # Calcula y retorna el ángulo en grados
     ang = np.arctan2(y, x)
-
     return np.degrees(ang)
 
+# Función para obtener las coordenadas de un átomo específico
 def get_atom_coords(df, chain, residue, atom):
     try:
         atom_row = df[(df["chain"] == chain) & (df["residue num"] == residue) & (df["atom"] == atom)]
@@ -29,6 +33,7 @@ def get_atom_coords(df, chain, residue, atom):
     except IndexError:
         return None
 
+# Función para clasificar residuos de aminoácidos
 def classify_residue(residue):
     if residue in polar:
         return "Polar"
@@ -43,23 +48,22 @@ def classify_residue(residue):
     else:
         pass
 
+# Nombre del archivo PDB y otras configuraciones
 pdb = "1ewq.pdb"
 prot_pdb = pdb.split(".")[0].upper()
 data = []
 angles = []
+
+# Listas de aminoácidos y sus clasificaciones
 aminoacids = ["ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS", "ILE",
               "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL"]
 polar = ["ASN", "CYS", "GLN", "SER", "THR"]
-
-polar_pos= ["ARG", "HIS", "LYS"]
-
+polar_pos = ["ARG", "HIS", "LYS"]
 polar_neg = ["ASP", "GLU"]
-
 nonpolar_ali = ["ALA", "ILE", "GLY", "LEU", "MET", "PRO", "VAL"]
-
 nonpolar_aro = ["PHE", "TYR", "TRP"]
 
-
+# Leer el archivo PDB y extraer datos relevantes
 with open(pdb) as file:
     for line in file:
         if line.startswith("ATOM"):
@@ -74,9 +78,11 @@ with open(pdb) as file:
             if residue in aminoacids:
                 data.append([atom, residue, chain, res_num, x, y, z])
 
-        titles = [ "atom", "residue", "chain", "residue num", "x", "y", "z"]
-        df = pd.DataFrame(data, columns=titles)
+# Crear un DataFrame a partir de los datos extraídos
+titles = ["atom", "residue", "chain", "residue num", "x", "y", "z"]
+df = pd.DataFrame(data, columns=titles)
 
+# Calcular ángulos phi y psi para cada residuo en cada cadena
 for chain in df["chain"].unique():
     for residue in df[df["chain"] == chain]["residue num"].unique():
         residue_name = df[(df["chain"] == chain) & (df["residue num"] == residue)]["residue"].values[0]
@@ -98,15 +104,17 @@ for chain in df["chain"].unique():
         if phi != 0.00 and psi != 0.00:
             angles.append((chain, residue, residue_name, phi, psi))
 
+# Crear un DataFrame a partir de los ángulos calculados
 angles_df = pd.DataFrame(angles, columns=["chain", "residue num", "residue", "phi", "psi"])
 
+# Clasificar los residuos
 angles_df["classification"] = angles_df["residue"].apply(classify_residue)
 
-proline_angles_df = angles_df.loc[df['residue'] == 'PRO']
-
+# Filtrar residuos específicos (prolina y glicina)
+proline_angles_df = angles_df.loc[angles_df['residue'] == 'PRO']
 glycine_angles_df = angles_df.loc[angles_df['residue'] == 'GLY']
 
-
+# Generar y guardar el gráfico de Ramachandran para glicina
 glycine_plot_name = f"{prot_pdb}_ramachandran_plot_glycine.png"
 plt.figure(figsize=(8, 6))
 sns.scatterplot(x="phi", y="psi", data=glycine_angles_df, s=15, edgecolor="green", color="lightgreen")
@@ -119,7 +127,7 @@ plt.title("Ramachandran plot for glycine residues")
 plt.grid(True)
 plt.savefig(glycine_plot_name)
 
-
+# Generar y guardar el gráfico de Ramachandran para prolina
 proline_plot_name = f"{prot_pdb}_ramachandran_plot_proline.png"
 plt.figure(figsize=(8, 6))
 sns.scatterplot(x="phi", y="psi", data=proline_angles_df, s=15, edgecolor="red", color="tomato")
@@ -132,7 +140,7 @@ plt.title("Ramachandran plot for proline residues")
 plt.grid(True)
 plt.savefig(proline_plot_name)
 
-
+# Generar y guardar el gráfico de Ramachandran general
 plot_name = f"{prot_pdb}_ramachandran_plot.png"
 plt.figure(figsize=(8, 6))
 sns.scatterplot(x="phi", y="psi", data=angles_df, s=15, edgecolor="blue", color="lightblue")
@@ -145,7 +153,7 @@ plt.title("Ramachandran plot")
 plt.grid(True)
 plt.savefig(plot_name)
 
-
+# Generar y guardar el histograma de frecuencias de residuos
 hist_plot_name = f"{prot_pdb}_residue_histogram.png"
 plt.figure(figsize=(8, 6))
 ax = sns.histplot(angles_df["residue"], color="lightblue")
@@ -160,11 +168,10 @@ plt.xticks(rotation=90)
 plt.tight_layout()
 plt.savefig(hist_plot_name)
 
-
+# Generar y guardar el gráfico de clasificación de residuos
 classification_name = f"{prot_pdb}_classification.png"
 plt.figure(figsize=(8, 6))
-sns.countplot(x="classification", data=angles_df, palette="Paired", order=angles_df["classification"].value_counts().index,
-              legend=False, hue="classification")
+sns.countplot(x="classification", data=angles_df, palette="Paired", order=angles_df["classification"].value_counts().index)
 plt.xlabel("Classification")
 plt.ylabel("Repetitions")
 plt.title("Classification of the residues in the Ramachandran plot")
@@ -172,16 +179,18 @@ plt.xticks(rotation=45)
 plt.tight_layout()
 plt.savefig(classification_name)
 
+# Clase para crear el PDF con los gráficos
 class PDF(FPDF):
     def header(self):
         self.set_font('Helvetica', 'B', 12)
-        self.cell(0, 10, prot_pdb , new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+        self.cell(0, 10, prot_pdb, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
 
     def footer(self):
         self.set_y(-15)
         self.set_font('Helvetica', 'I', 8)
         self.cell(0, 10, f'Page {self.page_no()}', new_x=XPos.RIGHT, new_y=YPos.TOP, align='C')
 
+# Crear el PDF y añadir los gráficos
 pdf = PDF()
 pdf.add_page()
 pdf.image(plot_name, x=5, y=19, w=205)
@@ -192,6 +201,7 @@ pdf.image(hist_plot_name, x=10, y=19, w=180)
 pdf.image(classification_name, x=10, y=160, w=180)
 pdf.output(f'{prot_pdb}.pdf')
 
+# Eliminar archivos temporales de gráficos
 os.remove(glycine_plot_name)
 os.remove(proline_plot_name)
 os.remove(plot_name)
