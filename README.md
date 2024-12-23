@@ -4,6 +4,8 @@ Un gráfico de Ramachandran es una representación gráfica de los ángulos de t
 
 Este proyecto analiza los ángulos de torsión (phi y psi) de los residuos de proteínas a partir de un archivo PDB, genera el gráfico de Ramachandran general, uno de glicinas y otro de prolinas. También clasifica los residuos según su R y contabiliza los aminoácidos mostrados en el Ramachandran mediante un histograma.
 
+Para probar el código, se debe tener el PDB y el código en la misma carpeta, y cambiar el pdb = "1ewq.pdb" por el nombre del PDB a emplear
+
 ## Características
 
 - **Calcular Ángulos de Torsión**: Calcula los ángulos phi y psi para cada residuo en la proteína.
