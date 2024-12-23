@@ -144,7 +144,7 @@ proline_plot_name = f"{prot_pdb}_ramachandran_plot_proline.png"
 plt.figure(figsize=(8, 6))
 sns.scatterplot(x="phi", y="psi", data=proline_angles_df, s=15, edgecolor="red", color="tomato")
 sns.kdeplot(x="phi", y="psi", data=proline_angles_df, levels=3, color="darkred", fill=True,
-            alpha=0.3, bw_adjust=0.25)
+            alpha=0.3, bw_adjust=0.3)
 plt.xlabel("Phi (φ)")
 plt.ylabel("Psi (ψ)")
 plt.xlim(-180, 180)
