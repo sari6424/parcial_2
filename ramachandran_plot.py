@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from fpdf import FPDF, XPos, YPos
 
+
 # Calcula el ángulo de torsión entre cuatro átomos
 def torsion_angle(a, b, c, d):
     # Calcula vectores entre los puntos
@@ -12,7 +13,7 @@ def torsion_angle(a, b, c, d):
     u2 = np.array(c) - np.array(b)
     u3 = np.array(d) - np.array(c)
 
-    # Calcula productos cruzados y puntos necesarios para el ángulo
+    # Calcula productos cruzados y normaliza para el ángulo
     e = (np.linalg.norm(u2) * u1)
     f = np.cross(u2, u3)
     g = np.cross(u1, u2)
@@ -25,6 +26,7 @@ def torsion_angle(a, b, c, d):
     ang = np.arctan2(y, x)
     return np.degrees(ang)
 
+
 # Obtiene las coordenadas de un átomo
 def get_atom_coords(df, chain, residue, atom):
     try:
@@ -32,6 +34,7 @@ def get_atom_coords(df, chain, residue, atom):
         return atom_row[['x', 'y', 'z']].values[0]
     except IndexError:
         return None
+
 
 # Clasificar residuos de aminoácidos
 def classify_residue(residue):
@@ -48,7 +51,9 @@ def classify_residue(residue):
     else:
         pass
 
-# Archivo PDB y lo organiza, separa su información para poder usar la primera parte del nombre en los demás archivos
+
+# Archivo PDB y lo organiza, separa su información para poder usar la primera parte del nombre en
+# los demás archivos
 pdb = "1ewq.pdb"
 prot_pdb = pdb.split(".")[0].upper()
 data = []
@@ -63,7 +68,7 @@ polar_neg = ["ASP", "GLU"]
 nonpolar_ali = ["ALA", "ILE", "GLY", "LEU", "MET", "PRO", "VAL"]
 nonpolar_aro = ["PHE", "TYR", "TRP"]
 
-# Lee el archivo PDB y extraer la información necesaria
+# Lee el archivo PDB y extrae la información necesaria
 with open(pdb) as file:
     for line in file:
         if line.startswith("ATOM"):
@@ -75,6 +80,7 @@ with open(pdb) as file:
             y = float(line[38:46].strip())
             z = float(line[46:54].strip())
             # Evita que se incluyan en el plot atomos que no sean aminoácidos
+
             if residue in aminoacids:
                 data.append([atom, residue, chain, res_num, x, y, z])
 
@@ -82,8 +88,9 @@ with open(pdb) as file:
 titles = ["atom", "residue", "chain", "residue num", "x", "y", "z"]
 df = pd.DataFrame(data, columns=titles)
 
-# Calcular ángulos phi y psi para cada residuo en cada cadena
-for chain in df["chain"].unique(): # Es de esta forma para que no incluya varias veces el mismo aminoácido y revise la cadena
+# Calcula ángulos phi y psi para cada residuo en cada cadena
+for chain in df["chain"].unique():
+    # Es de esta forma para que no incluya varias veces el mismo aminoácido y revise la cadena
     for residue in df[df["chain"] == chain]["residue num"].unique():
         residue_name = df[(df["chain"] == chain) & (df["residue num"] == residue)]["residue"].values[0]
         C_ant = get_atom_coords(df, chain, residue - 1, "C")
@@ -98,12 +105,13 @@ for chain in df["chain"].unique(): # Es de esta forma para que no incluya varias
         # Calcula phi si todo esta bien
         if C_ant is not None and N is not None and CA is not None and C is not None:
             phi = round(torsion_angle(C_ant, N, CA, C), 2)
-            
+
         # Calcula psi si todo esta bien
         if N is not None and CA is not None and C is not None and N_next is not None:
             psi = round(torsion_angle(N, CA, C, N_next), 2)
-            
-        # Guarda el ángulo siempre que no sean 0.00; excluye el primero, el ultimo y los que quedaron antes/depúes de los que no se pudieron calcular
+
+        # Guarda el ángulo siempre que no sean 0.00; excluye el primero, el ultimo y los que quedaron
+        # antes/depúes de los que no se pudieron calcular
         if phi != 0.00 and psi != 0.00:
             angles.append((chain, residue, residue_name, phi, psi))
 
@@ -121,7 +129,8 @@ glycine_angles_df = angles_df.loc[angles_df['residue'] == 'GLY']
 glycine_plot_name = f"{prot_pdb}_ramachandran_plot_glycine.png"
 plt.figure(figsize=(8, 6))
 sns.scatterplot(x="phi", y="psi", data=glycine_angles_df, s=15, edgecolor="green", color="lightgreen")
-sns.kdeplot(x="phi", y="psi", data=glycine_angles_df, levels=3, color="darkgreen", fill=True, alpha=0.3, bw_adjust=0.25)
+sns.kdeplot(x="phi", y="psi", data=glycine_angles_df, levels=3, color="darkgreen", fill=True,
+            alpha=0.3, bw_adjust=0.25)
 plt.xlabel("Phi (φ)")
 plt.ylabel("Psi (ψ)")
 plt.xlim(-180, 180)
@@ -134,7 +143,8 @@ plt.savefig(glycine_plot_name)
 proline_plot_name = f"{prot_pdb}_ramachandran_plot_proline.png"
 plt.figure(figsize=(8, 6))
 sns.scatterplot(x="phi", y="psi", data=proline_angles_df, s=15, edgecolor="red", color="tomato")
-sns.kdeplot(x="phi", y="psi", data=proline_angles_df, levels=3, color="darkred", fill=True, alpha=0.3, bw_adjust=0.25)
+sns.kdeplot(x="phi", y="psi", data=proline_angles_df, levels=3, color="darkred", fill=True,
+            alpha=0.3, bw_adjust=0.25)
 plt.xlabel("Phi (φ)")
 plt.ylabel("Psi (ψ)")
 plt.xlim(-180, 180)
@@ -174,13 +184,16 @@ plt.savefig(hist_plot_name)
 # Genera y guarda el gráfico de clasificación de residuos
 classification_name = f"{prot_pdb}_classification.png"
 plt.figure(figsize=(8, 6))
-sns.countplot(x="classification", data=angles_df, palette="Paired", order=angles_df["classification"].value_counts().index)
+sns.countplot(x="classification", data=angles_df, palette="Paired",
+              order=angles_df["classification"].value_counts().index,
+              legend=False, hue="classification")
 plt.xlabel("Classification")
 plt.ylabel("Repetitions")
 plt.title("Classification of the residues in the Ramachandran plot")
 plt.xticks(rotation=45)
 plt.tight_layout()
 plt.savefig(classification_name)
+
 
 # Crea el PDF con los gráficos, esta es la parte organiza las páginas
 class PDF(FPDF):
@@ -192,6 +205,7 @@ class PDF(FPDF):
         self.set_y(-15)
         self.set_font('Helvetica', 'I', 8)
         self.cell(0, 10, f'Page {self.page_no()}', new_x=XPos.RIGHT, new_y=YPos.TOP, align='C')
+
 
 # Crea el PDF y añade los gráficos organizados
 pdf = PDF()
